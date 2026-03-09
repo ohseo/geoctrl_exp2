@@ -1,0 +1,9 @@
+//Locale: en_US
+"//Settings: Settings(language: ko_KR, flipPerfect: false, showOnlyMainLanguage: false, scaleStepResponse: 100, scaleStepVisualize: 100, fontSize: 18, sliderHeight: 1.5, sliderWidth: 0.6, weightingType: WeightingType.none, enabledSubscales: {mental: true, physical: true, temporal: true, performance: true, effort: true, frustration: true})"
+//Participant: P6
+//Age: 
+//Email: 
+Name,Task,Mental Demand,Physical Demand,Temporal Demand,Performance,Effort,Frustration,Mental DemandTALLY,Physical DemandTALLY,Temporal DemandTALLY,PerformanceTALLY,EffortTALLY,FrustrationTALLY
+P6,X,28.999999999999996,38,48,33,48,27,0,0,0,0,0,0
+P6,Y,81,98,94,92,89,92,0,0,0,0,0,0
+P6,Z,20,21,23,16,15,11,0,0,0,0,0,0
