@@ -1,0 +1,25 @@
+﻿participant_id,name,headset_usage,bare_hand_expertise,direct_manipulation_expertise,Finger Importance,Most Accurate,Least Accurate,Most Preferred,Least Preferred
+P1,김효진,4,3,2,6,X,Y,X,Z
+P2,양소영,4,3,3,5,Z,X,Z,Y
+P3,하태욱,4,4,4,5,Z,Y,Z,Y
+P4,김현진,5,5,4,6,X,Y,Z,Y
+P5,정은희,5,5,5,5,X,Z,Z,Y
+P6,김영빈,5,5,5,6,Z,Y,Z,Y
+P7,김현호,2,2,1,2,Y,Z,Y,Z
+P8,김정민,3,3,3,2,X,Y,X,Y
+P9,유여림,2,2,2,6,X,Y,X,Y
+P10,이승재,4,4,4,7,Z,X,Z,X
+P11,백혜민,2,2,2,7,Z,Y,Z,Y
+P12,오소연,4,2,2,7,X,Y,Z,Y
+P13,김기영,3,3,3,5,"x and z, z is slighltly better",Y,Z,Y
+P14,김병현,2,2,2,4,X,Y,Z,Y
+P15,류나정,3,2,2,6,X,Z,X,Z
+P16,양석환,5,5,4,7,Z,Y,Z,Y
+P17,송하일,5,5,5,6,Z,X,Z,X
+P18,전다혜,4,4,4,7,X,Z,X,Z
+P19,정다겸,4,5,2,7,Z,Y,Z,Y
+P20,김영래,4,4,4,7,Z,Y,Z,Y
+P21,임일도,3,3,3,5,X,Y,X,Y
+P22,이고은,4,4,4,6,Z,Y,Z,Y
+P23,이예진,2,2,1,7,X,Y,X,Y
+P24,신윤석,5,5,5,7,Z,Y,Z,Y

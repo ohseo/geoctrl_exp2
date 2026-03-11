@@ -25,6 +25,7 @@ warnings.filterwarnings("ignore", message=".*Random effects covariance is singul
 
 _IN_JUPYTER = "ipykernel" in sys.modules
 
+# %%
 # ── load data if not already in scope or preprocessing is missing ──────────────
 _PREPROCESSED_COLS = ["Sum Wrist Rotation", "Sum Wrist Translation",
                       "right_wrist_rotation", "left_wrist_rotation"]
@@ -42,6 +43,7 @@ except (NameError, AssertionError):
     df_summary = _ns["df_summary"]
     DATA_ROOT  = _ns["DATA_ROOT"]
 
+# %%
 # ── merge expertise columns from df_participants ───────────────────────────────
 _EXPERTISE_COLS = ["headset_usage", "bare_hand_expertise", "direct_manipulation_expertise"]
 if not all(c in df_summary.columns for c in _EXPERTISE_COLS):
@@ -62,10 +64,10 @@ if not all(c in df_summary.columns for c in _EXPERTISE_COLS):
 # **Change `DV` to any numeric column in `df_summary` to re-run the full analysis.**
 
 # ── dependent variable ────────────────────────────────────────────────────────
-DV = "Task Completion Time"
+# DV = "Task Completion Time"
 # DV = "Total Die Rotation"
 # DV = "Total Die Translation"
-# DV = "Sum Wrist Rotation"
+DV = "Sum Wrist Rotation"
 # DV = "Sum Wrist Translation"
 # DV = "Total Head Rotation"
 # DV = "Total Head Translation"
@@ -81,26 +83,31 @@ EXCLUDE_OUTLIERS = False
 EXCLUDE_NON_EXPERTS = False
 POSTHOC  = "ttest_rel"   # "ttest_rel" = paired t-test on participant means (within-subjects)
                          # "ttest_ind" = independent samples t-test on raw trials
+SHOW_NS  = False         # True = annotate all pairs including ns; False = sig pairs only
 IV1       = "condition"  # primary fixed effect column
 IV1_ORDER = ["Baseline", "GeoCtrl", "Physics"]  # level order; also sets reference (first item)
 IV2       = None         # second IV for interaction, e.g. "Block Num" or "Trial Num"
                          # set to None for main-effect-only model
-ORDER   = ["Baseline", "GeoCtrl", "Physics"]   # condition order for PALETTE / plots
+ORDER   = ["Baseline", "GeoCtrl", "Physics"]
 PALETTE = {"Baseline": "#4C72B0", "Physics": "#DD8452", "GeoCtrl": "#55A868"}
-PILOTS = ['P0','P99','P26','P30']
-VALUE_OUTLIERS = ['P23','P18','P4']  # participant IDs to exclude, e.g. ["P99"]
-NON_EXPERTS = ['P1','P2','P23','P21','P7','P19','P8']
+VALUE_OUTLIERS = ['P23','P18','P4','P14']  # participant IDs to exclude, e.g. ["P99"]
+NON_EXPERTS = df_participants.loc[
+    df_participants["direct_manipulation_expertise"].astype(int) < 3,
+    "participant_id",
+].tolist()
+
 if EXCLUDE_OUTLIERS:
-    OUTLIERS = PILOTS + VALUE_OUTLIERS
+    OUTLIERS = VALUE_OUTLIERS
 else:
-    OUTLIERS = PILOTS
+    OUTLIERS = []
 if EXCLUDE_NON_EXPERTS:
     OUTLIERS = OUTLIERS + NON_EXPERTS
+    print(NON_EXPERTS)
 
 # Derived
 _ylabel    = DV_LABEL if DV_LABEL else DV
 _safe_dv   = DV.replace(" ", "_").replace("/", "_")
-_plot_file = DATA_ROOT / f"lmm_{_safe_dv}.png"
+_plot_file = DATA_ROOT / f"lmm_{_safe_dv}_T-{EXCLUDE_TIMEOUTS}_O-{EXCLUDE_OUTLIERS}_N-{EXCLUDE_NON_EXPERTS}.png"
 _ref       = IV1_ORDER[0]
 _iv1_term  = IV1 if " " not in IV1 else f"Q('{IV1}')"
 _cond_term = f"C({_iv1_term}, Treatment(reference='{_ref}'))"
@@ -200,22 +207,22 @@ sns.boxplot(
     flierprops=dict(marker="o", markersize=4, alpha=0.5),
     ax=ax,
 )
-sns.stripplot(
-    data=df_lmm, x=IV1, y=DV,
-    order=IV1_ORDER,
-    color="black", size=3, alpha=0.35, jitter=True,
-    ax=ax,
-)
+# sns.stripplot(
+#     data=df_lmm, x=IV1, y=DV,
+#     order=IV1_ORDER,
+#     color="black", size=3, alpha=0.35, jitter=True,
+#     ax=ax,
+# )
 
+_ph_plot   = df_posthoc if SHOW_NS else df_posthoc[df_posthoc["sig"] != "ns"]
 sig_pairs  = [(r["pair"].split(" vs ")[0], r["pair"].split(" vs ")[1])
-              for _, r in df_posthoc.iterrows()]
-sig_labels = list(df_posthoc["sig"])
-
-annotator = Annotator(ax, sig_pairs, data=df_lmm,
-                      x=IV1, y=DV, order=IV1_ORDER)
-annotator.configure(line_width=1.2, text_format="simple", fontsize=11)
-annotator.set_custom_annotations(sig_labels)
-annotator.annotate()
+              for _, r in _ph_plot.iterrows()]
+if sig_pairs:
+    annotator = Annotator(ax, sig_pairs, data=df_lmm,
+                          x=IV1, y=DV, order=IV1_ORDER)
+    annotator.configure(line_width=1.2, text_format="simple", fontsize=11)
+    annotator.set_custom_annotations(list(_ph_plot["sig"]))
+    annotator.annotate()
 
 ax.set_title(f"{DV} by {IV1}", fontsize=13, pad=12)
 ax.set_xlabel(IV1, fontsize=11)
@@ -239,12 +246,19 @@ for k, v in lmm_fe.items():
 plt.tight_layout()
 
 # Config stamp — shown at the bottom of the saved image
-_cfg_text = (
-    f"exclude_timeouts={EXCLUDE_TIMEOUTS} | exclude_outliers={EXCLUDE_OUTLIERS} |   "
-    f"exclude_non_experts={EXCLUDE_NON_EXPERTS} | posthoc={POSTHOC} |   "
-    f"outliers={OUTLIERS}"
+# _cfg_text = (
+#     f"exclude_timeouts={EXCLUDE_TIMEOUTS} | exclude_outliers={EXCLUDE_OUTLIERS} |   "
+#     f"exclude_non_experts={EXCLUDE_NON_EXPERTS} | posthoc={POSTHOC} |   "
+#     f"outliers={OUTLIERS}"
+# )
+_stats_text = (
+    f"baseline={desc['mean']['Baseline']}({desc['sd']['Baseline']})   |   "
+    f"geoctrl={desc['mean']['GeoCtrl']}({desc['sd']['GeoCtrl']})    |   "
+    f"physics={desc['mean']['Physics']}({desc['sd']['Physics']})    |   "
+    f"posthoc={POSTHOC}\n"
+    f"timeouts exclusion={EXCLUDE_TIMEOUTS} |   outlier exclusion={EXCLUDE_OUTLIERS}    |   non-expert exclusion={EXCLUDE_NON_EXPERTS}"
 )
-fig.text(0.5, -0.02, _cfg_text, ha="center", va="top",
+fig.text(0.5, -0.02, _stats_text, ha="center", va="top",
          fontsize=6.5, color="gray", style="italic",
          wrap=True)
 
@@ -314,13 +328,13 @@ sns.boxplot(
     flierprops=dict(marker="o", markersize=3, alpha=0.4),
     ax=ax2,
 )
-sns.stripplot(
-    data=_df_grp, x=GRP_X, y=DV,
-    hue=GRP_HUE, hue_order=_hue_order, order=_x_order,
-    palette=_hue_palette, size=3, alpha=0.4, jitter=True,
-    dodge=True, legend=False,
-    ax=ax2,
-)
+# sns.stripplot(
+#     data=_df_grp, x=GRP_X, y=DV,
+#     hue=GRP_HUE, hue_order=_hue_order, order=_x_order,
+#     palette=_hue_palette, size=3, alpha=0.4, jitter=True,
+#     dodge=True, legend=False,
+#     ax=ax2,
+# )
 
 ax2.set_title(f"{DV}  |  {GRP_X} × {GRP_HUE}", fontsize=13, pad=10)
 ax2.set_xlabel(GRP_X, fontsize=11)
@@ -332,12 +346,16 @@ _cfg_text2 = (
     f"DV={DV}  |  x={GRP_X}  |  hue={GRP_HUE}  |  "
     f"exclude_timeouts={EXCLUDE_TIMEOUTS}  |  outliers={OUTLIERS}"
 )
+
+_stats_text = (
+    f"timeouts exclusion={EXCLUDE_TIMEOUTS} |   outlier exclusion={EXCLUDE_OUTLIERS}    |   non-expert exclusion={EXCLUDE_NON_EXPERTS}"
+)
 fig2.text(0.5, -0.02, _cfg_text2, ha="center", va="top",
           fontsize=6.5, color="gray", style="italic")
 
 plt.tight_layout()
 _safe_grp = f"{GRP_X.replace(' ','_')}_x_{GRP_HUE.replace(' ','_')}"
-_grp_plot_file = DATA_ROOT / f"lmm_{_safe_dv}_{_safe_grp}.png"
+_grp_plot_file = DATA_ROOT / f"lmm_{_safe_dv}_{_safe_grp}_T-{EXCLUDE_TIMEOUTS}_O-{EXCLUDE_OUTLIERS}_N-{EXCLUDE_NON_EXPERTS}.png"
 plt.savefig(_grp_plot_file, dpi=150, bbox_inches="tight")
 if _IN_JUPYTER:
     plt.show()

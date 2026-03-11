@@ -83,16 +83,13 @@ def _load_csvs(pattern: str, extra_meta_fn=None) -> pd.DataFrame:
 # ## Summary data
 # One row per trial. Primary metric source.
 
-df_summary = _load_csvs("*_Summary.csv")
+df_summary_all = _load_csvs("*_Summary.csv")
 
-df_summary["Block Num"] = df_summary["Block Num"].astype(int).astype(str)
-df_summary["Trial Num"] = df_summary["Trial Num"].astype(int).astype(str)
+df_summary_all["Block Num"] = df_summary_all["Block Num"].astype(int).astype(str)
+df_summary_all["Trial Num"] = df_summary_all["Trial Num"].astype(int).astype(str)
 
-print(f"Summary: {df_summary.shape[0]} rows × {df_summary.shape[1]} cols")
-print(df_summary.groupby(["participant_id", "condition"]).size().rename("n_trials"))
-
-# %%
-df_summary.head()
+print(f"Summary: {df_summary_all.shape[0]} rows × {df_summary_all.shape[1]} cols")
+print(df_summary_all.groupby(["participant_id", "condition"]).size().rename("n_trials"))
 
 
 # %% [markdown]
@@ -102,33 +99,33 @@ df_summary.head()
 # The cells below coalesce both naming schemes into four consistent columns.
 
 
-df_summary["right_wrist_rotation"] = (
-    df_summary["Right Total Wrist Rotation"]
-    .fillna(df_summary["Total Wrist Rotation"])
+df_summary_all["right_wrist_rotation"] = (
+    df_summary_all["Right Total Wrist Rotation"]
+    .fillna(df_summary_all["Total Wrist Rotation"])
 )
-df_summary["left_wrist_rotation"] = (
-    df_summary["Left Total Wrist Rotation"]
-    .fillna(df_summary["Total Wrist Rotation_left"])
+df_summary_all["left_wrist_rotation"] = (
+    df_summary_all["Left Total Wrist Rotation"]
+    .fillna(df_summary_all["Total Wrist Rotation_left"])
 )
-df_summary["right_wrist_translation"] = (
-    df_summary["Right Total Wrist Translation"]
-    .fillna(df_summary["Total Wrist Translation"])
+df_summary_all["right_wrist_translation"] = (
+    df_summary_all["Right Total Wrist Translation"]
+    .fillna(df_summary_all["Total Wrist Translation"])
 )
-df_summary["left_wrist_translation"] = (
-    df_summary["Left Total Wrist Translation"]
-    .fillna(df_summary["Total Wrist Translation_left"])
+df_summary_all["left_wrist_translation"] = (
+    df_summary_all["Left Total Wrist Translation"]
+    .fillna(df_summary_all["Total Wrist Translation_left"])
 )
 
-df_summary["Sum Wrist Rotation"]    = df_summary["right_wrist_rotation"]    + df_summary["left_wrist_rotation"]
-df_summary["Sum Wrist Translation"] = df_summary["right_wrist_translation"] + df_summary["left_wrist_translation"]
+df_summary_all["Sum Wrist Rotation"]    = df_summary_all["right_wrist_rotation"]    + df_summary_all["left_wrist_rotation"]
+df_summary_all["Sum Wrist Translation"] = df_summary_all["right_wrist_translation"] + df_summary_all["left_wrist_translation"]
 
 # Normalise target offset rotation angle to [0, 180]: values > 180 → 360 - value
-df_summary["Target Offset Rotation Angle"] = pd.to_numeric(
-    df_summary["Target Offset Rotation Angle"], errors="coerce"
+df_summary_all["Target Offset Rotation Angle"] = pd.to_numeric(
+    df_summary_all["Target Offset Rotation Angle"], errors="coerce"
 )
-df_summary["Target Offset Rotation Angle"] = df_summary["Target Offset Rotation Angle"].where(
-    df_summary["Target Offset Rotation Angle"] <= 180,
-    360 - df_summary["Target Offset Rotation Angle"],
+df_summary_all["Target Offset Rotation Angle"] = df_summary_all["Target Offset Rotation Angle"].where(
+    df_summary_all["Target Offset Rotation Angle"] <= 180,
+    360 - df_summary_all["Target Offset Rotation Angle"],
 )
 
 # Verify: no NaNs expected after coalescing
@@ -136,37 +133,18 @@ _wrist_cols = ["right_wrist_rotation", "left_wrist_rotation",
                "right_wrist_translation", "left_wrist_translation",
                "Sum Wrist Rotation", "Sum Wrist Translation"]
 print("NaN counts after coalescing:")
-print(df_summary[_wrist_cols].isna().sum())
+print(df_summary_all[_wrist_cols].isna().sum())
 print("\nMeans by condition:")
-print(df_summary.groupby("condition")[_wrist_cols].mean().round(2))
-
-
-# %% [markdown]
-# ## Condition-specific subsets
-
-df_baseline = df_summary[df_summary["condition"] == "Baseline"].reset_index(drop=True)
-df_physics  = df_summary[df_summary["condition"] == "Physics"].reset_index(drop=True)
-df_geoctrl  = df_summary[df_summary["condition"] == "GeoCtrl"].reset_index(drop=True)
-
-print(f"df_baseline : {len(df_baseline)} rows")
-print(f"df_physics  : {len(df_physics)} rows")
-print(f"df_geoctrl  : {len(df_geoctrl)} rows")
-
-# %%
-df_geoctrl.head()
-
+print(df_summary_all.groupby("condition")[_wrist_cols].mean().round(2))
 
 # %% [markdown]
 # ## EventLog data
 # One row per sub-trial event (Trial Load / Start / Grab / Release / On Target / Off Target / End).
 
-df_events = _load_csvs("*_EventLog.csv")
+df_events_all = _load_csvs("*_EventLog.csv")
 
-print(f"EventLog: {df_events.shape[0]} rows × {df_events.shape[1]} cols")
-print(df_events.groupby(["participant_id", "condition", "Event Name"]).size().rename("n_events"))
-
-# %%
-df_events.head()
+print(f"EventLog: {df_events_all.shape[0]} rows × {df_events_all.shape[1]} cols")
+print(df_events_all.groupby(["participant_id", "condition", "Event Name"]).size().rename("n_events"))
 
 
 # %% [markdown]
@@ -190,20 +168,17 @@ for f in _tlx_files:
     _df["condition"] = _df["Task"].map(_TASK_TO_CONDITION)
     _tlx_dfs.append(_df)
 
-df_tlx = pd.concat(_tlx_dfs, ignore_index=True) if _tlx_dfs else pd.DataFrame()
+df_tlx_all = pd.concat(_tlx_dfs, ignore_index=True) if _tlx_dfs else pd.DataFrame()
 
 # Coerce subscales to numeric and compute unweighted TLX total (mean of 6 subscales)
 for col in _TLX_SUBSCALES:
-    df_tlx[col] = pd.to_numeric(df_tlx[col], errors="coerce")
-df_tlx["TLX Total"] = df_tlx[_TLX_SUBSCALES].mean(axis=1).round(2)
+    df_tlx_all[col] = pd.to_numeric(df_tlx_all[col], errors="coerce")
+df_tlx_all["TLX Total"] = df_tlx_all[_TLX_SUBSCALES].mean(axis=1).round(2)
 
-df_tlx = df_tlx[["participant_id", "condition"] + _TLX_SUBSCALES + ["TLX Total"]]
+df_tlx_all = df_tlx_all[["participant_id", "condition"] + _TLX_SUBSCALES + ["TLX Total"]]
 
-print(f"TLX: {len(df_tlx)} rows ({df_tlx['participant_id'].nunique()} participants × 3 conditions)")
-print(df_tlx.groupby("condition")[["TLX Total"] + _TLX_SUBSCALES].mean().round(2))
-
-# %%
-df_tlx
+print(f"TLX: {len(df_tlx_all)} rows ({df_tlx_all['participant_id'].nunique()} participants × 3 conditions)")
+print(df_tlx_all.groupby("condition")[["TLX Total"] + _TLX_SUBSCALES].mean().round(2))
 
 
 # %% [markdown]
@@ -226,6 +201,66 @@ def _stream_meta(filepath: Path) -> dict:
 
 
 # %% [markdown]
+# ## Exclude pilot and spare data
+
+# Define participants to exclude
+P_EXCLUDE = ['P0','P99','P26','P30','P31']
+
+df_summary = df_summary_all[~df_summary_all['participant_id'].isin(P_EXCLUDE)].copy()
+df_events = df_events_all[~df_events_all['participant_id'].isin(P_EXCLUDE)].copy()
+df_tlx = df_tlx_all[~df_tlx_all['participant_id'].isin(P_EXCLUDE)].copy()
+
+# %% [markdown]
+# ## Condition-specific subsets
+
+df_baseline = df_summary[df_summary["condition"] == "Baseline"].reset_index(drop=True)
+df_physics  = df_summary[df_summary["condition"] == "Physics"].reset_index(drop=True)
+df_geoctrl  = df_summary[df_summary["condition"] == "GeoCtrl"].reset_index(drop=True)
+
+# ── Step 1: remove outlier trials by Sum Wrist Rotation (IQR × 1.5, trial-level) ──
+_swr = pd.to_numeric(df_geoctrl["Sum Wrist Rotation"], errors="coerce")
+_q1, _q3 = _swr.quantile(0.25), _swr.quantile(0.75)
+_iqr = _q3 - _q1
+_outlier_mask = (_swr < _q1 - 1.5 * _iqr) | (_swr > _q3 + 1.5 * _iqr)
+n_before = len(df_geoctrl)
+df_geoctrl = df_geoctrl[~_outlier_mask].reset_index(drop=True)
+print(f"GeoCtrl trial outliers removed (Sum Wrist Rotation IQR×1.5): "
+      f"{n_before - len(df_geoctrl)} of {n_before} trials")
+
+# ── Step 2: compute Sum Die Local Rotation and Wrist Usage Ratio ──────────────
+_wrist     = pd.to_numeric(df_geoctrl["Sum Wrist Rotation"], errors="coerce")
+_die_local = (
+    pd.to_numeric(df_geoctrl["Right Total Die Local Rotation"], errors="coerce")
+    + pd.to_numeric(df_geoctrl["Left Total Die Local Rotation"],  errors="coerce")
+)
+df_geoctrl["Sum Die Local Rotation"] = _die_local
+df_geoctrl["Wrist Usage Ratio"]      = _wrist / (_wrist + _die_local)
+print(f"[Wrist Usage Ratio] mean: {df_geoctrl["Wrist Usage Ratio"].mean().round(3)}, std: {df_geoctrl["Wrist Usage Ratio"].std().round(3)}")
+
+# ── Step 3: load df_participants if not already in scope ──────────────────────
+try:
+    df_participants  # type: ignore[name-defined]
+except NameError:
+    import runpy as _runpy
+    _ep_ns = _runpy.run_path(str(DATA_ROOT / "extract_participants.py"))
+    df_participants = _ep_ns["df_participants"]
+
+# ── Step 4: aggregate mean & SD of Wrist Usage Ratio per participant ──────────
+_wur_agg = (
+    df_geoctrl.groupby("participant_id")["Wrist Usage Ratio"]
+    .agg(mean_wrist_usage_ratio="mean", sd_wrist_usage_ratio="std")
+    .round(4)
+    .reset_index()
+)
+
+if not "mean_wrist_usage_ratio" in df_participants.columns:
+    df_participants = df_participants.merge(_wur_agg, on="participant_id", how="left")
+
+df_participants.to_csv(DATA_ROOT / "extracted_participants_wrist.csv")
+
+# print(df_participants[["participant_id", "mean_wrist_usage_ratio", "sd_wrist_usage_ratio"]].to_string(index=False))
+
+# %% [markdown]
 # ## Quick sanity checks
 
 # Column names in each combined dataframe
@@ -233,18 +268,36 @@ print("=== df_summary columns ===")
 print(list(df_summary.columns))
 print("\n=== df_events columns ===")
 print(list(df_events.columns))
+print("\n=== df_tlx columns ===")
+print(list(df_tlx.columns))
 
-# Summary: trial counts per participant × condition
-df_summary.groupby(["participant_id", "condition"])["Trial Num"].count().unstack()
+# Summary: participant ids
+print(f"\n=== df_summary participants === {len(df_summary['participant_id'].unique())}")
+print(sorted(df_summary["participant_id"].unique()))
 
-# Summary: mean task completion time
-df_summary.groupby(["participant_id", "condition"])["Task Completion Time"].mean().unstack().round(3)
+# EventLog: participant ids
+print(f"\n=== df_events participants === {len(df_events['participant_id'].unique())}")
+print(sorted(df_events["participant_id"].unique()))
 
-# Summary: timeout rate
-df_summary.groupby(["condition"])["Is Timeout"].apply(lambda s: s.astype(str).str.lower().eq("true").mean()).rename("timeout_rate").round(4)
+# TLX: participant ids
+print(f"\n=== df_tlx participants === {len(df_tlx['participant_id'].unique())}")
+print(sorted(df_tlx["participant_id"].unique()))
 
-# EventLog: unique event types per condition
-df_events.groupby("condition")["Event Name"].unique()
+# GeoCtrl: participant ids
+print(f"\n=== df_geoctrl participants === {len(df_geoctrl['participant_id'].unique())}")
+print(sorted(df_geoctrl["participant_id"].unique()))
+
+# # Summary: trial counts per participant × condition
+# df_summary.groupby(["participant_id", "condition"])["Trial Num"].count().unstack()
+
+# # Summary: mean task completion time
+# df_summary.groupby(["participant_id", "condition"])["Task Completion Time"].mean().unstack().round(3)
+
+# # Summary: timeout rate
+# df_summary.groupby(["condition"])["Is Timeout"].apply(lambda s: s.astype(str).str.lower().eq("true").mean()).rename("timeout_rate").round(4)
+
+# # EventLog: unique event types per condition
+# df_events.groupby("condition")["Event Name"].unique()
 
 
 # %% [markdown]

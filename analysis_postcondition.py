@@ -40,6 +40,7 @@ CONDITION_MAP = {"X": "Baseline", "Y": "Physics", "Z": "GeoCtrl"}
 ORDER   = ["Baseline", "GeoCtrl", "Physics"]
 PALETTE = {"Baseline": "#4C72B0", "Physics": "#DD8452", "GeoCtrl": "#55A868"}
 PILOTS  = ["P0", "P99", "P26", "P30"]
+SHOW_NS = False   # True = annotate all pairs including ns; False = sig pairs only
 
 LIKERT_VARS = ["AG1", "AG2", "AG3", "AG4", "VEQ", "expected", "realistic", "comfortable", "easy", "learnable"]
 
@@ -114,7 +115,7 @@ for var, ph in posthoc_all.items():
 # ## 4 · Box plots — all Likert items
 
 n_vars = len(LIKERT_VARS)
-n_cols = 3
+n_cols = 5
 n_rows = (n_vars + n_cols - 1) // n_cols
 
 fig, axes = plt.subplots(n_rows, n_cols, figsize=(n_cols * 5, n_rows * 4))
@@ -137,14 +138,14 @@ for ax, var in zip(axes_flat, LIKERT_VARS):
         ax=ax,
     )
 
-    sig_pairs  = [(r["A"], r["B"]) for _, r in ph.iterrows()]
-    sig_labels = list(ph["sig"])
-
-    annotator = Annotator(ax, sig_pairs, data=df,
-                          x="condition", y=var, order=ORDER)
-    annotator.configure(line_width=1.0, text_format="simple", fontsize=10)
-    annotator.set_custom_annotations(sig_labels)
-    annotator.annotate()
+    _ph_plot   = ph if SHOW_NS else ph[ph["sig"] != "ns"]
+    sig_pairs  = [(r["A"], r["B"]) for _, r in _ph_plot.iterrows()]
+    if sig_pairs:
+        annotator = Annotator(ax, sig_pairs, data=df,
+                              x="condition", y=var, order=ORDER)
+        annotator.configure(line_width=1.0, text_format="simple", fontsize=10)
+        annotator.set_custom_annotations(list(_ph_plot["sig"]))
+        annotator.annotate()
 
     ax.set_title(var, fontsize=11, pad=6)
     ax.set_xlabel("")

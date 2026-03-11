@@ -23,6 +23,8 @@ warnings.filterwarnings("ignore", message=".*Random effects covariance is singul
 
 _IN_JUPYTER = "ipykernel" in sys.modules
 
+#%%
+
 # ── load data if not already in scope ─────────────────────────────────────────
 try:
     df_tlx
@@ -33,23 +35,35 @@ except NameError:
     df_tlx    = _ns["df_tlx"]
     DATA_ROOT = _ns["DATA_ROOT"]
 
+try:
+    df_participants  # type: ignore[name-defined]
+except NameError:
+    import runpy, pathlib
+    _ns2 = runpy.run_path(str(pathlib.Path(__file__).parent / "extract_participants.py"))
+    df_participants = _ns2["df_participants"]
+
 
 # %% [markdown]
 # ## Configuration
 EXCLUDE_NON_EXPERTS = False
-EXCLUDE_OUTLIERS = False
+EXCLUDE_OUTLIERS = True
+SHOW_NS = False   # True = annotate all pairs including ns; False = sig pairs only
 
 ORDER   = ["Baseline", "GeoCtrl", "Physics"]
 PALETTE = {"Baseline": "#4C72B0", "Physics": "#DD8452", "GeoCtrl": "#55A868"}
-PILOTS = ['P0','P99','P26','P30']
-VALUE_OUTLIERS = ['P23','P18','P4']  # participant IDs to exclude, e.g. ["P99"]
-NON_EXPERTS = ['P1','P2','P23','P21','P7','P19','P8']
+VALUE_OUTLIERS = ['P23','P18','P4','P14']  # participant IDs to exclude, e.g. ["P99"]
+NON_EXPERTS = df_participants.loc[
+    df_participants["direct_manipulation_expertise"].astype(int) < 3,
+    "participant_id",
+].tolist()
+
 if EXCLUDE_OUTLIERS:
-    OUTLIERS = PILOTS + VALUE_OUTLIERS
+    OUTLIERS = VALUE_OUTLIERS
 else:
-    OUTLIERS = PILOTS
+    OUTLIERS = []
 if EXCLUDE_NON_EXPERTS:
     OUTLIERS = OUTLIERS + NON_EXPERTS
+    print(NON_EXPERTS)
 
 SUBSCALES = ["Mental Demand", "Physical Demand", "Temporal Demand",
              "Performance", "Effort", "Frustration"]
@@ -141,26 +155,29 @@ for ax, var in zip(axes_flat, ALL_VARS):
         flierprops=dict(marker="o", markersize=4, alpha=0.5),
         ax=ax,
     )
-    sns.stripplot(
-        data=df, x="condition", y=var,
-        order=ORDER,
-        color="black", size=4, alpha=0.5, jitter=True,
-        ax=ax,
-    )
+    # sns.stripplot(
+    #     data=df, x="condition", y=var,
+    #     order=ORDER,
+    #     color="black", size=4, alpha=0.5, jitter=True,
+    #     ax=ax,
+    # )
 
-    sig_pairs  = [(r["A"], r["B"]) for _, r in ph.iterrows()]
-    sig_labels = list(ph["sig"])
+    _ph_plot   = ph if SHOW_NS else ph[ph["sig"] != "ns"]
+    sig_pairs  = [(r["A"], r["B"]) for _, r in _ph_plot.iterrows()]
+    if sig_pairs:
+        annotator = Annotator(ax, sig_pairs, data=df,
+                              x="condition", y=var, order=ORDER)
+        annotator.configure(line_width=1.0, text_format="simple", fontsize=10)
+        annotator.set_custom_annotations(list(_ph_plot["sig"]))
+        annotator.annotate()
 
-    annotator = Annotator(ax, sig_pairs, data=df,
-                          x="condition", y=var, order=ORDER)
-    annotator.configure(line_width=1.0, text_format="simple", fontsize=10)
-    annotator.set_custom_annotations(sig_labels)
-    annotator.annotate()
+    # Extend y-axis so annotations sit inside the plot without overlapping title
+    _, top = ax.get_ylim()
+    ax.set_ylim(bottom=-5, top=max(top * 1.08, 115))
 
     ax.set_title(var, fontsize=11, pad=6)
     ax.set_xlabel("")
     ax.set_ylabel("Score (0–100)", fontsize=9)
-    ax.set_ylim(-5, 115)
     ax.tick_params(axis="x", labelsize=9)
 
     # LMM footnote
@@ -181,7 +198,12 @@ axes_flat[-1].set_visible(False)
 fig.suptitle("NASA-TLX by Condition", fontsize=14, y=1.01)
 plt.tight_layout()
 
-_plot_file = DATA_ROOT / "tlx_boxplots.png"
+_text = (f"outlier exclusion={EXCLUDE_OUTLIERS}    |   non-expert exclusion={EXCLUDE_NON_EXPERTS}")
+fig.text(0.5, -0.02, _text, ha="center", va="top",
+         fontsize=6.5, color="gray", style="italic",
+         wrap=True)
+
+_plot_file = DATA_ROOT / f"tlx_boxplots_O-{EXCLUDE_OUTLIERS}_N-{EXCLUDE_NON_EXPERTS}.png"
 plt.savefig(_plot_file, dpi=150, bbox_inches="tight")
 if _IN_JUPYTER:
     plt.show()

@@ -26,8 +26,8 @@ participants.sort(key=lambda x: x[0])
 # %%
 import pandas as pd
 
-df_participants = pd.DataFrame(participants, columns=["participant_id", "name"])
-df_participants["participant_id"] = df_participants["participant_id"].apply(lambda x: f"P{x}")
+df_participants_all = pd.DataFrame(participants, columns=["participant_id", "name"])
+df_participants_all["participant_id"] = df_participants_all["participant_id"].apply(lambda x: f"P{x}")
 
 # %% [markdown]
 # ## Expertise levels
@@ -72,14 +72,13 @@ _demo["direct_manipulation_expertise"] = (
 )
 
 # Merge into df_participants by matching Korean name
-df_participants = df_participants.merge(
+df_participants_all = df_participants_all.merge(
     _demo[["Name", "headset_usage", "bare_hand_expertise", "direct_manipulation_expertise"]],
     left_on="name",
     right_on="Name",
 ).drop(columns="Name")
 
-print(f"{len(df_participants)} participants found")
-df_participants
+print(f"{len(df_participants_all)} participants found")
 
 # %% [markdown]
 # ## Post-experiment survey
@@ -90,13 +89,12 @@ _postexp = pd.read_csv(DATA_ROOT / "participants_postexp.csv", encoding="utf-8-s
 _NAME_COL = "참가자 이름 (데이터 식별을 위함이며 연구에 사용되지 않음)"
 _english_cols = [c for c in _postexp.columns if c.isascii() and c.strip()]
 
-df_participants = df_participants.merge(
+df_participants_all = df_participants_all.merge(
     _postexp[[_NAME_COL] + _english_cols].rename(columns={_NAME_COL: "name"}),
     on="name",
 )
 
 print(f"Post-exp columns added: {_english_cols}")
-df_participants
 
 # %% [markdown]
 # ## Post-condition questionnaire
@@ -109,27 +107,59 @@ _postcond = pd.read_csv(DATA_ROOT / "postcondition.csv", encoding="utf-8-sig")
 _NAME_COL_PC = "참가자 이름"
 _english_cols_pc = [c for c in _postcond.columns if c.isascii() and c.strip()]
 
-df_postcondition = (
+df_postcondition_all = (
     _postcond[[_NAME_COL_PC] + _english_cols_pc]
     .rename(columns={_NAME_COL_PC: "name"})
     .merge(
-        df_participants[["name", "participant_id", "headset_usage", "bare_hand_expertise", "direct_manipulation_expertise"]],
+        df_participants_all[["name", "participant_id", "headset_usage", "bare_hand_expertise", "direct_manipulation_expertise"]],
         on="name",
     )
 )
 
 # Compute VEQ as the mean of the four AG items
 _ag_cols = ["AG1", "AG2", "AG3", "AG4"]
-df_postcondition["VEQ"] = df_postcondition[_ag_cols].mean(axis=1).round(2)
+df_postcondition_all["VEQ"] = df_postcondition_all[_ag_cols].mean(axis=1).round(2)
 
 # Reorder: participant_id first, then expertise columns, then questionnaire columns
 _q_cols = [c for c in _english_cols_pc if c != "Condition"]
-df_postcondition = df_postcondition[
+df_postcondition_all = df_postcondition_all[
     ["participant_id", "name", "Condition", "headset_usage", "bare_hand_expertise", "direct_manipulation_expertise",
      "VEQ"] + _q_cols
 ]
 
-print(f"Post-condition: {df_postcondition.shape[0]} rows × {df_postcondition.shape[1]} cols")
-df_postcondition
+print(f"Post-condition: {df_postcondition_all.shape[0]} rows × {df_postcondition_all.shape[1]} cols")
+
+# %% [markdown]
+# ## Exclude pilot and spare data
+
+# Define participants to exclude
+P_EXCLUDE = ['P0','P99','P26','P30','P31']
+
+df_participants = df_participants_all[~df_participants_all['participant_id'].isin(P_EXCLUDE)].copy()
+df_postcondition = df_postcondition_all[~df_postcondition_all['participant_id'].isin(P_EXCLUDE)].copy()
+
+# %% [markdown]
+# ## Sanity check
+
+# Column names in each combined dataframe
+print("=== df_participants columns ===")
+print(list(df_participants.columns))
+print("\n=== df_postcondition columns ===")
+print(list(df_postcondition.columns))
+
+# Summary: participant ids
+print(f"\n=== df_participants participants === {len(df_participants['participant_id'].unique())}")
+print(sorted(df_participants["participant_id"].unique()))
+
+# EventLog: participant ids
+print(f"\n=== df_postcondition participants === {len(df_postcondition['participant_id'].unique())}")
+print(sorted(df_postcondition["participant_id"].unique()))
+
+
+# %% [markdown]
+# ## Save to csv
+
+df_participants.to_csv('extracted_participants.csv', index=False, encoding='utf-8-sig')
+df_postcondition.to_csv('extracted_postconditions.csv', index=False, encoding='utf-8-sig')
 
 # %%

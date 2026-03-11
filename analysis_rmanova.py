@@ -43,8 +43,8 @@ except (NameError, AssertionError):
 # **Change `DV` to any numeric column in `df_summary` to re-run the full analysis.**
 
 # ── dependent variable ────────────────────────────────────────────────────────
-# DV = "Task Completion Time"
-DV = "Total Die Rotation"
+DV = "Task Completion Time"
+# DV = "Total Die Rotation"
 # DV = "Total Die Translation"
 # DV = "Sum Wrist Rotation"
 # DV = "Sum Wrist Translation"
